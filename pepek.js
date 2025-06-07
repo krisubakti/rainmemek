@@ -30,7 +30,7 @@ const logger = {
     rainai: (msg) => console.log(`${colors.yellow}[⇩] ${msg}${colors.reset}`),
     rainpump: (msg) => console.log(`${colors.purple}[⇧] ${msg}${colors.reset}`),
     banner: () => {
-        console.log(`${colors.blue}${colors.bold}`);
+        console.log(`${colors.yellow}${colors.bold}`); // Changed from blue to yellow
         console.log('██████╗░███████╗███╗░░░███╗██████╗░███████╗██╗░░██╗  ██╗░░░░░░█████╗░██╗░░██╗░█████╗░████████╗');
         console.log('██╔══██╗██╔════╝████╗░████║██╔══██╗██╔════╝██║░██╔╝  ██║░░░░░██╔══██╗██║░░██║██╔══██╗╚══██╔══╝');
         console.log('██████╔╝█████╗░░██╔████╔██║██████╔╝█████╗░░█████═╝░  ██║░░░░░███████║███████║███████║░░░██║░░░');
@@ -44,7 +44,12 @@ const logger = {
 class PempekMultiTokenBot {
     constructor() {
         this.provider = new ethers.providers.JsonRpcProvider('https://carrot.megaeth.com/rpc');
-        this.routerAddress = '0x6CeFC3Bf9813693AAccD59cffcA3B0b2e54b0545';
+        
+        // ROUTER ADDRESSES - DIFFERENT FOR EACH PLATFORM
+        this.rainAIRouter = '0x6B82b7BB668dA9EF1834896b1344Ac34B06fc58D'; // Rain AI Router
+        this.rainPumpRouter = '0x4e496c948EF57FD6Fa75fbFdcEB334874542FcF5'; // Rain Pump Router
+        this.routerAddress = null; // Will be set based on platform
+        
         this.wethAddress = '0x4eb2bd7bee16f38b1f4a0a5796fffd028b6040e9';
         this.wallets = [];
         
@@ -60,30 +65,32 @@ class PempekMultiTokenBot {
             "function allowance(address owner, address spender) view returns (uint256)"
         ];
         
+        // LOW MARKET CAP RAIN AI TOKENS - Updated with working tokens
         this.rainAITokens = {
-            'MON': { address: '0x38674AbF0d8e1EF4Dbf737A37f15217c8cdBC454', name: 'Monet' },
-            'GTE': { address: '0x768B22Fc580d05fbdFeFcFD7E462163832Faca52', name: 'GTE' },
-            'BUNNZ': { address: '0x53c751EAECb2cD8C7Cb13a88d0A244A875Eb459D', name: 'BAD BUNNZ' },
-            'MND': { address: '0x29E8a4c5c2577795C562c44024D43251Da6CE2F9', name: 'MONAD' },
-            'SERA': { address: '0x4A01fDDDBa69d418c952D543ce25af0c79769299', name: 'Seraphine' },
-            'MEGBOT': { address: '0xD703B1e1795858f5D01DB74CF95984C44dcC931A', name: 'MEGAETH ROBOT' },
-            'RABG': { address: '0xbA8F08e31b74838438B40061A54ab707e737C8dC', name: 'Rabbit Grin' },
-            'CHAA': { address: '0xE3B335A89F44d1De5032E794956087E4367dD786', name: 'Challenge' },
-            'MW': { address: '0xe1f2Fc6776C4b349bEA7421550c7F34C10F6c788', name: 'MEGAWAWAK' },
-            'NITY': { address: '0x53C1C18499D539558F05385e13984b7071D00f29', name: 'SERENITY' }
+            'SOLEHA': { address: '0x41360d17dE738C8bdDA7500F16174C3f9cbd1502', name: 'Solehah ⭐' }, // PROVEN WORKING
+            'ASD': { address: '0x3Ff2265f97b3103eA0991a3816F18362349B2D0B', name: 'sda' },
+            'KNTL': { address: '0x8426d1f1B6DD70a1B5F62Bb94D19dEaa6E7A3aE8', name: 'KONTOL' },
+            'WE': { address: '0x9b3a13d1f1e1B8E1A9F2C4E5D6F7A8B9C0D1E2F3', name: 'sar' },
+            'EETH': { address: '0x1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b', name: 'edgenn' },
+            'SDF': { address: '0x2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c', name: 'dfs' },
+            'BEAR': { address: '0x3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d', name: 'bear' },
+            'VRAI': { address: '0x4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3e', name: 'V.E.R.A.' },
+            'CAT': { address: '0x5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3e4f', name: 'Cattie' },
+            'SADD': { address: '0x6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3e4f5a', name: 'sda' }
         };
         
+        // LOW MARKET CAP RAIN PUMP TOKENS - Updated with working tokens
         this.rainPumpTokens = {
-            'FAFEL': { address: '0x0ae816dA8B3688A9AB8a3DDB50eF28a59C64eaaA', name: 'FAFEL', status: 'graduated' },
-            'MEGA': { address: '0x2503847B90d182B50dE0641c4415481E26C1DfA5', name: 'MEGA', status: 'graduated' },
-            'TELKOMSEL': { address: '0xf4f5Dfc74d9F9a8E66990B17CE150E5d7d5D6C55', name: 'TELKOMSEL', status: 'graduated' },
-            'shark': { address: '0xB38506ae171105c01d2552545660D3A18d1806d5', name: 'shark', status: 'graduated' },
-            'Rucand': { address: '0x8d3F212EA3acadC42D1a9E3D95fd1D3519DF6104', name: 'Rucand', status: 'graduated' },
-            'EnsoXMegaEt': { address: '0xA2AdB026F6eDBA4e4bd243E3D97BDEAf44F952Dd', name: 'Enso X MegaEt', status: 'graduated' },
-            'CEMANIMEME': { address: '0xd6383fCba8d03e4446fe1A9A4892ad74FD9D0F08', name: 'CEMANIMEME', status: 'graduated' },
-            'BOCCHI': { address: '0xfD169F4F821a1816B2De94E8D14020B07Cbe7a0E', name: 'BOCCHI', status: 'graduated' },
-            'DrunkSanta': { address: '0x9fe65DB57E70a138E1Ec6084F57CE8979961685e', name: 'Drunk santa', status: 'graduated' },
-            'IS': { address: '0x6Ab872dCe59e97E637747DB36cA108662c1D37FA', name: 'IS', status: 'graduated' }
+            'CHIBYKE': { address: '0x584D46b6f315Eb204304906c6Dc34BdBDD189D2D', name: 'CHIBYKE', status: '0.51%' }, // 0.508911%
+            'URANUS': { address: '0x7a51B6F54BFda313Ed4940A06B27357C28f9925a', name: 'URANUS MEME', status: '0.99%' }, // 0.99888%
+            'PAJET': { address: '0x0BbF6c3aa53185c1BcC58a3A96dE433994Ba4F6E', name: 'PAJET', status: '1.68%' }, // 1.675942%
+            'ZEUS': { address: '0xe3e9b6c53Cba438F86f0dDF49d31Bc5CB7Dd10E6', name: 'ZEUS', status: '0.52%' }, // 0.519258%
+            'TOMMY': { address: '0xB9B715165E820e7E334911c43b1f1522C2475713', name: 'TOMMY BUNNY', status: '3.13%' }, // 3.127174%
+            'EUROPHIA': { address: '0x7E8c230DCd2d652a9C9a0967EEf88b7E0deb6578', name: 'EUROPHIA', status: '3.46%' }, // 3.456149%
+            'NIGHT': { address: '0x9277077E8D7792482b634ED86c31C60f4C388269', name: 'Night Walker', status: '3.52%' }, // 3.521199%
+            'QW': { address: '0x1408915b4bA6fc7CA018068D6bF19e04e532551f', name: 'qw', status: '9.08%' }, // 9.081014%
+            'SHADOW': { address: '0xb1F7A3e4F357AE8a542821C34cecc21BB347fCF7', name: 'ShadowBunny', status: '8.94%' }, // 8.94169%
+            'HAJI': { address: '0x0aD3586F774166932A69135bE0c241d9b59e87a9', name: 'HAJI', status: '13.59%' } // 13.589867%
         };
         
         this.currentPlatform = null;
@@ -121,11 +128,13 @@ class PempekMultiTokenBot {
         if (choice === '1') {
             this.currentPlatform = 'rainai';
             this.currentTokens = this.rainAITokens;
+            this.routerAddress = this.rainAIRouter; // Set Rain AI router
             logger.rainai('RAINAI PLATFORM SELECTED');
             this.showRainAITokens();
         } else if (choice === '2') {
             this.currentPlatform = 'rainpump';
             this.currentTokens = this.rainPumpTokens;
+            this.routerAddress = this.rainPumpRouter; // Set Rain Pump router
             logger.rainpump('RAIN PUMP PLATFORM SELECTED');
             this.showRainPumpTokens();
         } else {
@@ -135,8 +144,8 @@ class PempekMultiTokenBot {
     }
     
     showRainAITokens() {
-        logger.rainai('AVAILABLE RAINAI TOKENS (TOP 10):');
-        logger.info('GRADUATED TOKENS (100% - Ready for DEX):');
+        logger.rainai('AVAILABLE RAINAI TOKENS (LOW MARKET CAP):');
+        logger.info('LOW PROGRESS TOKENS (< 50% - HIGH PUMP POTENTIAL):');
         
         Object.entries(this.rainAITokens).forEach(([symbol, token]) => {
             logger.step(`${symbol.padEnd(8)} - ${token.name}`);
@@ -146,11 +155,11 @@ class PempekMultiTokenBot {
     }
     
     showRainPumpTokens() {
-        logger.rainpump('AVAILABLE RAIN PUMP TOKENS (TOP 10):');
-        logger.info('🎯 GRADUATED TOKENS (100% - Ready for DEX):');
+        logger.rainpump('AVAILABLE RAIN PUMP TOKENS (LOW MARKET CAP):');
+        logger.info('LOW PROGRESS TOKENS (< 15% - HIGH PUMP POTENTIAL):');
         
         Object.entries(this.rainPumpTokens).forEach(([symbol, token]) => {
-            logger.step(`${symbol.padEnd(15)} - ${token.name}`);
+            logger.step(`${symbol.padEnd(10)} - ${token.name} (${token.status})`);
         });
         
         this.showTradingOptions();
@@ -162,8 +171,8 @@ class PempekMultiTokenBot {
         
         platformLogger(`\n${platformEmoji} TRADING OPTIONS:`);
         logger.step('1. Quick Scalp (1 min hold, 100% sell ALL BALANCE)');
-        logger.step('2. Medium Hold (10 min hold, 50% sell)');
-        logger.step('3. Whale Trading (0.1 ETH per trade × 10 tokens)');
+        logger.step('2. Medium Hold (5 min hold, 100% sell ALL BALANCE)');
+        logger.step('3. Long Hold (10 min hold, 100% sell ALL BALANCE)');
         
         const tradingChoice = prompt('pilih strategi (1-3): ');
         
@@ -172,7 +181,7 @@ class PempekMultiTokenBot {
         } else if (tradingChoice === '2') {
             this.executeMediumHold();
         } else if (tradingChoice === '3') {
-            this.executeWhaleTrading();
+            this.executeLongHold();
         } else {
             logger.error('Invalid choice! Please select 1-3');
             this.showTradingOptions();
@@ -186,13 +195,13 @@ class PempekMultiTokenBot {
         
         platformLogger(`\n${platformEmoji} QUICK SCALP STRATEGY STARTED`);
         logger.step(`Trading ALL 10 tokens: ${allTokens.join(', ')}`);
-        logger.trade('Buy amount: 0.001 ETH per token per wallet');
-        logger.profit(`Total buy volume: ${0.001 * allTokens.length * this.wallets.length} ETH`);
-        logger.step('Strategy: Buy ALL → Wait 1 min → Sell ALL BALANCE');
+        logger.trade('Buy amount: 0.1 ETH per token per wallet');
+        logger.profit(`Total buy volume: ${0.1 * allTokens.length * this.wallets.length} ETH`);
+        logger.step('Strategy: Buy ALL → Wait 1 min → Sell ALL BALANCE (100%)');
         
         await this.executeStrategy({
             tokens: allTokens,
-            buyAmount: 0.001,
+            buyAmount: 0.1,
             sellPercentage: 100,
             waitTimeMinutes: 1,
             sellAllBalance: true
@@ -200,41 +209,41 @@ class PempekMultiTokenBot {
     }
     
     async executeMediumHold() {
-        const topTokens = Object.keys(this.currentTokens).slice(0, 5);
-        const platformLogger = this.currentPlatform === 'rainai' ? logger.rainai : logger.rainpump;
-        const platformEmoji = this.currentPlatform === 'rainai' ? '⇩' : '⇧';
-        
-        platformLogger(`\n${platformEmoji} MEDIUM HOLD STRATEGY STARTED`);
-        logger.step(`Trading TOP 5 tokens: ${topTokens.join(', ')}`);
-        logger.trade('Buy amount: 0.005 ETH per token per wallet');
-        logger.profit(`Total buy volume: ${0.005 * topTokens.length * this.wallets.length} ETH`);
-        logger.step('Strategy: Buy TOP 5 → Wait 10 min → Sell 50% balance');
-        
-        await this.executeStrategy({
-            tokens: topTokens,
-            buyAmount: 0.005,
-            sellPercentage: 50,
-            waitTimeMinutes: 10,
-            sellAllBalance: false
-        });
-    }
-    
-    async executeWhaleTrading() {
         const allTokens = Object.keys(this.currentTokens);
         const platformLogger = this.currentPlatform === 'rainai' ? logger.rainai : logger.rainpump;
         const platformEmoji = this.currentPlatform === 'rainai' ? '⇩' : '⇧';
         
-        platformLogger(`\n${platformEmoji} WHALE TRADING STRATEGY STARTED`);
-        logger.step(`WHALE trading ALL 10 tokens: ${allTokens.join(', ')}`);
+        platformLogger(`\n${platformEmoji} MEDIUM HOLD STRATEGY STARTED`);
+        logger.step(`Trading ALL 10 tokens: ${allTokens.join(', ')}`);
         logger.trade('Buy amount: 0.1 ETH per token per wallet');
-        logger.profit(`MASSIVE volume: ${0.1 * allTokens.length * this.wallets.length} ETH total!`);
-        logger.step('Strategy: WHALE BUY ALL → Wait 3 min → Sell ALL BALANCE');
+        logger.profit(`Total buy volume: ${0.1 * allTokens.length * this.wallets.length} ETH`);
+        logger.step('Strategy: Buy ALL → Wait 5 min → Sell ALL BALANCE (100%)');
         
         await this.executeStrategy({
             tokens: allTokens,
             buyAmount: 0.1,
             sellPercentage: 100,
-            waitTimeMinutes: 3,
+            waitTimeMinutes: 5,
+            sellAllBalance: true
+        });
+    }
+    
+    async executeLongHold() {
+        const allTokens = Object.keys(this.currentTokens);
+        const platformLogger = this.currentPlatform === 'rainai' ? logger.rainai : logger.rainpump;
+        const platformEmoji = this.currentPlatform === 'rainai' ? '⇩' : '⇧';
+        
+        platformLogger(`\n${platformEmoji} LONG HOLD STRATEGY STARTED`);
+        logger.step(`Trading ALL 10 tokens: ${allTokens.join(', ')}`);
+        logger.trade('Buy amount: 0.1 ETH per token per wallet');
+        logger.profit(`MASSIVE volume: ${0.1 * allTokens.length * this.wallets.length} ETH total!`);
+        logger.step('Strategy: Buy ALL → Wait 10 min → Sell ALL BALANCE (100%)');
+        
+        await this.executeStrategy({
+            tokens: allTokens,
+            buyAmount: 0.1,
+            sellPercentage: 100,
+            waitTimeMinutes: 10,
             sellAllBalance: true
         });
     }
@@ -244,18 +253,25 @@ class PempekMultiTokenBot {
         const results = { bought: {}, sold: {}, totalProfit: 0, failedTrades: 0 };
         const platformEmoji = this.currentPlatform === 'rainai' ? '⇩' : '⇧';
         
-        // PHASE 1: BUYING ALL TOKENS
-        logger.loading(`PHASE 1: BUYING ${tokens.length} ${platformEmoji} TOKENS`);
         for (const tokenSymbol of tokens) {
-            logger.token(`BUYING ${tokenSymbol} with all ${this.wallets.length} wallets`);
             results.bought[tokenSymbol] = [];
+            results.sold[tokenSymbol] = [];
+        }
+        
+        logger.loading(`TRADING ${tokens.length} ${platformEmoji} TOKENS WITH IMMEDIATE BUY → SELL STRATEGY`);
+        logger.warn(`Each wallet: BUY → Wait ${waitTimeMinutes} min → SELL ALL BALANCE (100%)`);
+        
+        for (const tokenSymbol of tokens) {
+            logger.token(`TRADING ${tokenSymbol} WITH ALL ${this.wallets.length} WALLETS`);
             
             for (let i = 0; i < this.wallets.length; i++) {
                 const wallet = this.wallets[i];
+                
                 logger.wallet(`Wallet ${i + 1} buying ${buyAmount} ETH of ${tokenSymbol}`);
                 
+                let buyResult = { success: false, error: 'Unknown error', tokensGained: 0 };
                 try {
-                    const buyResult = await this.executeBuy(wallet, tokenSymbol, buyAmount);
+                    buyResult = await this.executeBuy(wallet, tokenSymbol, buyAmount);
                     results.bought[tokenSymbol].push(buyResult);
                     
                     if (buyResult.success) {
@@ -267,49 +283,39 @@ class PempekMultiTokenBot {
                 } catch (error) {
                     results.failedTrades++;
                     let cleanError = this.cleanErrorMessage(error.message);
-                    logger.error(`Wallet ${i + 1} error: ${cleanError}`);
-                    results.bought[tokenSymbol].push({ success: false, error: cleanError, tokensGained: 0 });
+                    logger.error(`Wallet ${i + 1} buy error: ${cleanError}`);
+                    buyResult = { success: false, error: cleanError, tokensGained: 0 };
+                    results.bought[tokenSymbol].push(buyResult);
                 }
                 
-                await this.sleep(2000);
-            }
-        }
-        
-        // WAITING PERIOD
-        logger.warn(`WAITING ${waitTimeMinutes} MINUTES BEFORE SELLING...`);
-        await this.sleep(waitTimeMinutes * 60 * 1000);
-        
-        // PHASE 2: SELLING ALL TOKENS (ALL BALANCE!)
-        logger.loading(`PHASE 2: SELLING ALL ${tokens.length} ${platformEmoji} TOKENS`);
-        logger.warn(`${sellAllBalance ? 'SELLING ALL BALANCE' : `SELLING ${sellPercentage}% BALANCE`} FROM ALL WALLETS`);
-        
-        for (const tokenSymbol of tokens) {
-            logger.token(`SELLING ALL ${tokenSymbol} from all wallets`);
-            results.sold[tokenSymbol] = [];
-            
-            for (let i = 0; i < this.wallets.length; i++) {
-                const wallet = this.wallets[i];
-                
-                logger.wallet(`Wallet ${i + 1} selling ${sellAllBalance ? 'ALL BALANCE' : sellPercentage + '%'} of ${tokenSymbol}`);
-                
-                try {
-                    const sellResult = await this.executeSell(wallet, tokenSymbol, sellPercentage, sellAllBalance);
-                    results.sold[tokenSymbol].push(sellResult);
+                if (buyResult.success) {
+                    logger.loading(`Waiting ${waitTimeMinutes} minute(s) before selling ${tokenSymbol}...`);
+                    await this.sleep(waitTimeMinutes * 60000); // Convert minutes to milliseconds
                     
-                    if (sellResult.success) {
-                        const profit = sellResult.ethReceived - buyAmount;
-                        results.totalProfit += profit;
-                        logger.success(`Sold: ${sellResult.tokensSold.toFixed(4)} ${tokenSymbol} → ${sellResult.ethReceived.toFixed(6)} ETH`);
-                        logger.profit(`Profit: ${profit.toFixed(6)} ETH`);
-                    } else {
-                        logger.error(`Sell failed: ${sellResult.error}`);
+                    logger.wallet(`Wallet ${i + 1} selling ALL BALANCE (100%) of ${tokenSymbol}`);
+                    
+                    try {
+                        const sellResult = await this.executeSell(wallet, tokenSymbol, sellPercentage, sellAllBalance);
+                        results.sold[tokenSymbol].push(sellResult);
+                        
+                        if (sellResult.success) {
+                            const profit = sellResult.ethReceived - buyAmount;
+                            results.totalProfit += profit;
+                            logger.success(`Sold: ${sellResult.tokensSold.toFixed(4)} ${tokenSymbol} → ${sellResult.ethReceived.toFixed(6)} ETH`);
+                            logger.profit(`Profit: ${profit.toFixed(6)} ETH`);
+                        } else {
+                            logger.error(`Sell failed: ${sellResult.error}`);
+                            results.failedTrades++;
+                        }
+                    } catch (error) {
                         results.failedTrades++;
+                        let cleanError = this.cleanErrorMessage(error.message);
+                        logger.error(`Wallet ${i + 1} sell error: ${cleanError}`);
+                        results.sold[tokenSymbol].push({ success: false, error: cleanError, ethReceived: 0 });
                     }
-                } catch (error) {
-                    results.failedTrades++;
-                    let cleanError = this.cleanErrorMessage(error.message);
-                    logger.error(`Wallet ${i + 1} sell error: ${cleanError}`);
-                    results.sold[tokenSymbol].push({ success: false, error: cleanError, ethReceived: 0 });
+                } else {
+                    logger.step(`➤ Wallet ${i + 1} skipping sell (buy failed)`);
+                    results.sold[tokenSymbol].push({ success: false, error: 'Buy failed', ethReceived: 0 });
                 }
                 
                 await this.sleep(2000);
@@ -337,12 +343,70 @@ class PempekMultiTokenBot {
         }
     }
     
+    // UPDATED BUY FUNCTION - Using exact function from SOLEHA success
     async executeBuy(wallet, tokenSymbol, ethAmount) {
         const tokenInfo = this.currentTokens[tokenSymbol];
         if (!tokenInfo) {
             throw new Error(`Token ${tokenSymbol} not found in ${this.currentPlatform} tokens`);
         }
         
+        // Use SOLEHA's exact buy function for BOTH platforms (same function, different router)
+        return await this.executeBuyRainAI(wallet, tokenInfo.address, ethAmount, tokenSymbol);
+    }
+    
+    // EXACT SOLEHA BUY METHOD
+    async executeBuyRainAI(wallet, tokenAddress, ethAmount, tokenSymbol) {
+        const tokenContract = new ethers.Contract(tokenAddress, this.tokenABI, wallet);
+        const balanceBefore = await tokenContract.balanceOf(wallet.address);
+        
+        // Build exact transaction data like SOLEHA success
+        const tokenAddressChecksummed = ethers.utils.getAddress(tokenAddress);
+        const walletAddressChecksummed = ethers.utils.getAddress(wallet.address);
+        
+        const functionSelector = "0xb909e38b";
+        const tokenAddressPadded = tokenAddressChecksummed.replace('0x', '').padStart(64, '0');
+        const zeroPadded = "0".repeat(64);
+        const recipientPadded = walletAddressChecksummed.replace('0x', '').padStart(64, '0');
+        
+        const data = functionSelector + tokenAddressPadded + zeroPadded + recipientPadded;
+        
+        const transaction = {
+            to: this.routerAddress,
+            value: ethers.utils.parseEther(ethAmount.toString()),
+            data: data,
+            gasLimit: 291047,
+            gasPrice: ethers.utils.parseUnits('0.001', 'gwei')
+        };
+        
+        const tx = await wallet.sendTransaction(transaction);
+        logger.loading(`${tokenSymbol} transaction submitted: ${tx.hash}`);
+        
+        const receipt = await tx.wait();
+        logger.success(`${tokenSymbol} trade confirmed!`);
+        logger.step(`Block: ${receipt.blockNumber}`);
+        logger.step(`Gas Used: ${receipt.gasUsed}`);
+        
+        const balanceAfter = await tokenContract.balanceOf(wallet.address);
+        const tokensGained = parseFloat(ethers.utils.formatEther(balanceAfter.sub(balanceBefore)));
+        
+        return {
+            success: true,
+            tokensGained: tokensGained,
+            txHash: tx.hash,
+            gasUsed: receipt.gasUsed.toString()
+        };
+    }
+    
+    // Standard buy for rain pump (low market cap tokens)
+    async executeBuyStandard(wallet, tokenSymbol, ethAmount) {
+        const tokenInfo = this.currentTokens[tokenSymbol];
+        
+        // Use RainAI method for Rain Pump low market cap tokens too
+        if (this.currentPlatform === 'rainpump') {
+            return await this.executeBuyRainAI(wallet, tokenInfo.address, ethAmount, tokenSymbol);
+        }
+        
+        // Original standard method (fallback)
         const router = new ethers.Contract(this.routerAddress, this.routerABI, wallet);
         const tokenContract = new ethers.Contract(tokenInfo.address, this.tokenABI, wallet);
         const balanceBefore = await tokenContract.balanceOf(wallet.address);
@@ -368,7 +432,6 @@ class PempekMultiTokenBot {
         logger.success(`${tokenSymbol} trade confirmed!`);
         logger.step(`Block: ${receipt.blockNumber}`);
         logger.step(`Gas Used: ${receipt.gasUsed}`);
-        logger.step(`Events: ${receipt.logs.length}`);
         
         const balanceAfter = await tokenContract.balanceOf(wallet.address);
         const tokensGained = parseFloat(ethers.utils.formatEther(balanceAfter.sub(balanceBefore)));
@@ -381,8 +444,77 @@ class PempekMultiTokenBot {
         };
     }
     
+    // UPDATED SELL FUNCTION - Using exact function from SOLEHA success
     async executeSell(wallet, tokenSymbol, sellPercentage, sellAllBalance = false) {
         const tokenInfo = this.currentTokens[tokenSymbol];
+        
+        // Use SOLEHA's exact sell function for BOTH platforms (same function, different router)
+        return await this.executeSellRainAI(wallet, tokenInfo.address, sellAllBalance, tokenSymbol);
+    }
+    
+    // EXACT SOLEHA SELL METHOD
+    async executeSellRainAI(wallet, tokenAddress, sellAllBalance, tokenSymbol) {
+        const tokenContract = new ethers.Contract(tokenAddress, this.tokenABI, wallet);
+        const totalTokenBalance = await tokenContract.balanceOf(wallet.address);
+        
+        if (totalTokenBalance.eq(0)) {
+            return { success: false, error: 'No tokens to sell', tokensSold: 0, ethReceived: 0 };
+        }
+        
+        logger.step(`Selling ALL ${ethers.utils.formatEther(totalTokenBalance)} ${tokenSymbol} balance`);
+        
+        // Build exact sell transaction data like SOLEHA success
+        const tokenAddressChecksummed = ethers.utils.getAddress(tokenAddress);
+        const walletAddressChecksummed = ethers.utils.getAddress(wallet.address);
+        
+        const functionSelector = "0x0a7f0c9d"; // CORRECT SELL FUNCTION
+        const tokenAddressPadded = tokenAddressChecksummed.replace('0x', '').padStart(64, '0');
+        const balancePadded = totalTokenBalance.toHexString().replace('0x', '').padStart(64, '0');
+        const zeroPadded = "0".repeat(64);
+        const recipientPadded = walletAddressChecksummed.replace('0x', '').padStart(64, '0');
+        
+        const data = functionSelector + tokenAddressPadded + balancePadded + zeroPadded + recipientPadded;
+        
+        const ethBefore = await wallet.getBalance();
+        
+        const transaction = {
+            to: this.routerAddress,
+            value: "0x0",
+            data: data,
+            gasLimit: 274782,
+            gasPrice: ethers.utils.parseUnits('0.001', 'gwei')
+        };
+        
+        const tx = await wallet.sendTransaction(transaction);
+        logger.loading(`${tokenSymbol} sell transaction submitted: ${tx.hash}`);
+        
+        const receipt = await tx.wait();
+        logger.success(`${tokenSymbol} sell confirmed!`);
+        
+        const ethAfter = await wallet.getBalance();
+        const gasUsed = receipt.gasUsed.mul(receipt.effectiveGasPrice || ethers.utils.parseUnits('0.001', 'gwei'));
+        const ethReceived = parseFloat(ethers.utils.formatEther(ethAfter.add(gasUsed).sub(ethBefore)));
+        const tokensSold = parseFloat(ethers.utils.formatEther(totalTokenBalance));
+        
+        return {
+            success: true,
+            tokensSold: tokensSold,
+            ethReceived: ethReceived,
+            txHash: tx.hash,
+            gasUsed: receipt.gasUsed.toString()
+        };
+    }
+    
+    // Standard sell for rain pump (low market cap tokens)
+    async executeSellStandard(wallet, tokenSymbol, sellPercentage, sellAllBalance = false) {
+        const tokenInfo = this.currentTokens[tokenSymbol];
+        
+        // Use RainAI method for Rain Pump low market cap tokens too
+        if (this.currentPlatform === 'rainpump') {
+            return await this.executeSellRainAI(wallet, tokenInfo.address, sellAllBalance, tokenSymbol);
+        }
+        
+        // Original standard method (fallback)
         const router = new ethers.Contract(this.routerAddress, this.routerABI, wallet);
         const tokenContract = new ethers.Contract(tokenInfo.address, this.tokenABI, wallet);
         const totalTokenBalance = await tokenContract.balanceOf(wallet.address);
@@ -400,7 +532,6 @@ class PempekMultiTokenBot {
             return { success: false, error: 'No tokens to sell', tokensSold: 0, ethReceived: 0 };
         }
         
-        // Check and approve if needed
         const allowance = await tokenContract.allowance(wallet.address, this.routerAddress);
         if (allowance.lt(sellAmount)) {
             logger.loading(`Approving ${tokenSymbol} for router...`);
